@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd 
 
 #building the sidebar using object notation 
 # st.sidebar.title("Finance Flow")
@@ -66,7 +67,7 @@ elif page == "Daily Expenses":
     st.header("Daily Expenses")
     st.write("Track your daily expenses")
 
-    #adding "add expense" form
+    #adding "add expense" form #the input layer
     if "daily_expenses" not in st.session_state:
         st.session_state.daily_expenses = []
     
@@ -78,22 +79,33 @@ elif page == "Daily Expenses":
         if submit_button:
             if item == "":
                 st.error("Please add an item")
-            elif amount <0:
+            elif amount <= 0:
                 st.error("Please add a valid amount")
             else:
-                st.session_state
+                st.session_state.daily_expenses.append({
+                    "Item" : item,
+                    "Amount" : amount
+                })
+                st.success(f"Added {item} for GHS {amount}")
 
+    if st.session_state.daily_expenses: #turning our stored data into a dataframe
+       st.subheader("Today's Expenses")
 
+       df= pd.DataFrame(st.session_state.daily_expenses)
 
-    
-    
-    st.success(f"Added {item} for GHS {amount}")
+       st.dataframe(df, use_container_width= "True")
 
-    if st.session_state.daily_expenses:
-        st.subheader("Today's Expenses")  
-        st.table(st.session_state.daily_expenses)
+       total_spent = df["Amount"].sum()
+       st.metric("Total spent today(GHS)",f"{total_spent:.2f}")
+
+       st.subheader("Spending Breakdown")
+       st.bar_chart(df.set_index("Item")["Amount"])
     else:
-        st.write("No expenses added yet.")
+        st.write("No expenses added")
+
+
+
+
 
     
         
