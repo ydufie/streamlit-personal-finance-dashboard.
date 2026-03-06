@@ -1,5 +1,20 @@
 import streamlit as st
 import pandas as pd 
+import os
+from datetime import date
+
+#creating a load/save helper
+data_file = "expenses.csv"
+
+def load_expenses():
+    if os.path.exists(data_file):
+        return pd.read_csv(data_file)
+    return pd.DataFrame(columns=["Date","Item","Amount"])
+
+def save_expenses(df):
+    df.to_csv(data_file, index= False)
+
+
 
 #building the sidebar using object notation 
 # st.sidebar.title("Finance Flow")
@@ -67,42 +82,56 @@ elif page == "Daily Expenses":
     st.header("Daily Expenses")
     st.write("Track your daily expenses")
 
-    #adding "add expense" form #the input layer
-    if "daily_expenses" not in st.session_state:
-        st.session_state.daily_expenses = []
+    #adding "add expense" form the input layer
+    if "expenses_df" not in st.session_state:
+        st.session_state.expenses_df = load_expenses()
     
-    with st.form("expense form"):
+    with st.form("expense_form"):
         item = st.text_input("add item")
         amount = st.number_input("add amount(Ghs)")
         submit_button = st.form_submit_button("add expense")
 
         if submit_button:
-            if item == "":
+            if item.strip() == "":
                 st.error("Please add an item")
             elif amount <= 0:
                 st.error("Please add a valid amount")
             else:
-                st.session_state.daily_expenses.append({
-                    "Item" : item,
+                new_entry = {
+                    "Date":date.today().isoformat(),
+                    "Item": item,
                     "Amount" : amount
-                })
+                }
+
+                st.session_state.expenses_df = pd.concat(
+                    [st.session_state.expenses_df,pd.DataFrame([new_entry])],
+                    ignore_index=True
+                )
+                
+                save_expenses(st.session_state.expenses_df)
+                
                 st.success(f"Added {item} for GHS {amount}")
 
-    if st.session_state.daily_expenses: #turning our stored data into a dataframe
+        
+
+    if not st.session_state.expenses_df.empty: #turning our stored data into a dataframe
        st.subheader("Today's Expenses")
 
-       df= pd.DataFrame(st.session_state.daily_expenses)
+       today = date.today().isoformat()
+       today_df = st.session_state.expenses_df[
+           st.session_state.expenses_df["Date"] == today
+       ]
 
-       st.dataframe(df, use_container_width= "True")
+       st.dataframe(today_df, use_container_width=True)
 
-       total_spent = df["Amount"].sum()
+       total_spent = today_df["Amount"].sum()
        st.metric("Total spent today(GHS)",f"{total_spent:.2f}")
 
        st.subheader("Spending Breakdown")
-       st.bar_chart(df.set_index("Item")["Amount"])
+       st.bar_chart(today_df.set_index("Item")["Amount"])
     else:
         st.write("No expenses added")
-
+  
 
 
 
